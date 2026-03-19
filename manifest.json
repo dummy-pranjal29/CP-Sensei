@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "CP Sensei – AI Competitive Programming Coach",
+  "version": "1.0.0",
+  "description": "Real-time AI mentor for competitive programming",
+
+  "permissions": ["activeTab", "scripting"],
+
+  "host_permissions": [
+    "https://codeforces.com/*",
+    "https://*.leetcode.com/*",
+    "https://*.geeksforgeeks.org/*"
+  ],
+
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://codeforces.com/problemset/problem/*",
+        "https://codeforces.com/contest/*/problem/*",
+        "https://leetcode.com/problems/*",
+        "https://practice.geeksforgeeks.org/problems/*",
+        "https://www.geeksforgeeks.org/problems/*",
+        "https://www.geeksforgeeks.org/contests/*"
+      ],
+      "js": ["src/content/content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
