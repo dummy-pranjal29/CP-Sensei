@@ -26,8 +26,19 @@
         "https://www.geeksforgeeks.org/problems/*",
         "https://www.geeksforgeeks.org/contests/*"
       ],
-      "js": ["src/content/content.js"],
+      "js": ["src/ui/panel.js", "src/content/content.js"],
       "run_at": "document_idle"
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["src/ui/panel.css"],
+      "matches": [
+        "https://codeforces.com/*",
+        "https://*.leetcode.com/*",
+        "https://*.geeksforgeeks.org/*"
+      ]
     }
   ]
 }
