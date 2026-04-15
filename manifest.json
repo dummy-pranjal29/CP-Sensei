@@ -26,7 +26,12 @@
         "https://www.geeksforgeeks.org/problems/*",
         "https://www.geeksforgeeks.org/contests/*"
       ],
-      "js": ["src/ui/panel.js", "src/content/content.js"],
+      "js": [
+        "src/ui/panel.js",
+        "src/content/platformDetector.js",
+        "src/content/domObserver.js",
+        "src/content/content.js"
+      ],
       "run_at": "document_idle"
     }
   ],

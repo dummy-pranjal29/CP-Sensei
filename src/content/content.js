@@ -1,7 +1,13 @@
 function bootstrap() {
-  if (typeof window.__cpSenseiInit === "function") {
-    window.__cpSenseiInit();
-  }
+  window.__cpSenseiInit();
+
+  const platform = window.__cpDetectPlatform();
+  console.log("[CP Sensei] Platform:", platform);
+
+  if (!platform) return;
+
+  const problemData = window.__cpExtractProblem(platform);
+  console.log("[CP Sensei] Problem:", problemData);
 }
 
 document.readyState === "loading"
