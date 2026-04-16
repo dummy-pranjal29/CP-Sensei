@@ -1,3 +1,15 @@
+function sendProblemToBackground(problemData) {
+  chrome.runtime.sendMessage(
+    {
+      type: "PROBLEM_DETECTED",
+      payload: problemData,
+    },
+    (response) => {
+      console.log("[CP Sensei] BG response:", response);
+    },
+  );
+}
+
 function bootstrap() {
   window.__cpSenseiInit();
 
@@ -8,6 +20,8 @@ function bootstrap() {
 
   const problemData = window.__cpExtractProblem(platform);
   console.log("[CP Sensei] Problem:", problemData);
+
+  sendProblemToBackground(problemData);
 }
 
 document.readyState === "loading"

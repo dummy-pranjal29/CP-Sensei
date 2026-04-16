@@ -1,8 +1,23 @@
-console.log("🚀 CP Sensei background service worker started");
+console.log("CP Sensei background service worker started");
 
-// Optional: listen for installation
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("✅ CP Sensei installed successfully");
+  console.log("CP Sensei installed successfully");
 });
 
-// Future: message passing, API calls, hint engine trigger
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "PROBLEM_DETECTED") {
+    console.log("[CP Sensei BG] Problem received:", message.payload);
+
+    sendResponse({
+      success: true,
+      message: "Problem received",
+    });
+  } else {
+    sendResponse({
+      success: false,
+      message: "Unknown message type",
+    });
+  }
+
+  return true;
+});
