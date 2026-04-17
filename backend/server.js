@@ -1,0 +1,33 @@
+import { config } from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import express from "express";
+
+config({ path: join(dirname(fileURLToPath(import.meta.url)), ".env") });
+import cors from "cors";
+import { getHint } from "./hintEngine.js";
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+
+app.post("/api/hint", async (req, res) => {
+  const { problemData, level } = req.body;
+
+  try {
+    if (!problemData) {
+      return res.status(400).json({ error: "problemData is required" });
+    }
+    const hint = await getHint(problemData, level);
+    return res.json({ hint });
+  } catch (err) {
+    console.error("[CP Sensei] /api/hint error:", err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`CP Sensei backend running on http://localhost:${PORT}`);
+});

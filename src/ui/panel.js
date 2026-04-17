@@ -1,4 +1,5 @@
 const PANEL_ID = "cp-sensei-host";
+let _shadow = null;
 
 function createPanelHTML() {
   return `
@@ -18,7 +19,7 @@ function createPanelHTML() {
             </svg>
           </button>
         </div>
-        <div class="panel-body">
+        <div class="panel-body" id="cp-sensei-body">
           <div class="panel-placeholder">
             <div class="panel-placeholder-icon">🧠</div>
             <div class="panel-placeholder-text">Analyzing problem...<br/>Your AI mentor is ready.</div>
@@ -206,7 +207,24 @@ function loadCSS(shadowRoot) {
       background: rgba(255, 255, 255, 0.09);
       color: #d1d5db;
     }
-  `;
+    .hint-content {
+    padding: 4px 0;
+    width: 100%;
+    }
+    .hint-level {
+    font-size: 10px;
+    font-weight: 600;
+    color: #6366f1;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    }
+    .hint-text {
+    font-size: 13px;
+    color: #cbd5e1;
+    line-height: 1.65;
+    }
+    `;
   shadowRoot.appendChild(style);
 }
 
@@ -215,17 +233,18 @@ function initPanel() {
 
   const host = document.createElement("div");
   host.id = PANEL_ID;
-  const shadow = host.attachShadow({ mode: "open" });
-  shadow.innerHTML = createPanelHTML();
-  loadCSS(shadow);
+  _shadow = host.attachShadow({ mode: "open" });
+  _shadow.innerHTML = createPanelHTML();
+  loadCSS(_shadow);
   document.body.appendChild(host);
-  attachToggleListeners(shadow);
+  attachToggleListeners(_shadow);
 }
 
-function attachToggleListeners(shadow) {
-  const toggle = shadow.getElementById("cp-sensei-toggle");
-  const panel = shadow.getElementById("cp-sensei-panel");
-  const close = shadow.getElementById("cp-sensei-close");
+function attachToggleListeners() {
+  const toggle = _shadow.getElementById("cp-sensei-toggle");
+  const panel = _shadow.getElementById("cp-sensei-panel");
+  const close = _shadow.getElementById("cp-sensei-close");
+  const hintBtn = _shadow.getElementById("btn-hint");
 
   toggle.addEventListener("click", () => {
     panel.classList.remove("hidden");
@@ -235,6 +254,32 @@ function attachToggleListeners(shadow) {
     panel.classList.remove("visible");
     panel.classList.add("hidden");
   });
+  hintBtn.addEventListener("click", () => {
+    hintBtn.textContent = "Thinking...";
+    hintBtn.disabled = true;
+
+    chrome.runtime.sendMessage({ type: "GET_HINT" }, (response) => {
+      if (response?.hint) {
+        displayHint(response.hint, response.level);
+      }
+
+      hintBtn.textContent = "Get Hint";
+      hintBtn.disabled = false;
+    });
+  });
+}
+
+function displayHint(text, level) {
+  if (!_shadow) return;
+  const body = _shadow.getElementById("cp-sensei-body");
+  if (!body) return;
+  body.innerHTML = `
+    <div class="hint-content">
+      <p class="hint-level">Level ${level} / 5</p>
+      <p class="hint-text">${text}</p>
+    </div>
+  `;
 }
 
 window.__cpSenseiInit = initPanel;
+window.__cpSenseiDisplayHint = displayHint;

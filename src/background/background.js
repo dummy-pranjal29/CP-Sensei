@@ -1,16 +1,58 @@
 console.log("CP Sensei background service worker started");
 
+const BACKEND_URL = "http://localhost:3000";
+
+let storedProblem = null;
+let currentLevel = 1;
+
 chrome.runtime.onInstalled.addListener(() => {
   console.log("CP Sensei installed successfully");
 });
 
+async function fetchHint(problemData, level) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/hint`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ problemData, level }),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return data.hint;
+  } catch (err) {
+    console.error("[CP Sensei BG] Fetch error:", err.message);
+    return null;
+  }
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "PROBLEM_DETECTED") {
     console.log("[CP Sensei BG] Problem received:", message.payload);
-
-    sendResponse({
-      success: true,
-      message: "Problem received",
+    storedProblem = message.payload;
+    currentLevel = 1;
+    sendResponse({ success: true });
+  } else if (message.type === "GET_HINT") {
+    if (!storedProblem) {
+      sendResponse({
+        success: false,
+        message: "No problem loaded",
+      });
+      return;
+    }
+    fetchHint(storedProblem, currentLevel).then((hint) => {
+      const level = currentLevel;
+      if (currentLevel < 5) currentLevel++;
+      sendResponse({
+        success: true,
+        hint,
+        level,
+      });
     });
   } else {
     sendResponse({
