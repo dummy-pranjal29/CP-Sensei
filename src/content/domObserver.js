@@ -1,3 +1,28 @@
+function waitForElement(selector, callback, timeout = 5000) {
+  const existing = document.querySelector(selector);
+  if (existing) {
+    callback(existing);
+    return;
+  }
+
+  const observer = new MutationObserver(() => {
+    const element = document.querySelector(selector);
+
+    if (element) {
+      observer.disconnect();
+      callback(element);
+    }
+  });
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+
+  setTimeout(() => {
+    observer.disconnect();
+  }, timeout);
+}
+
 function extractFromCodeforces() {
   const titleEl = document.querySelector(".title");
   const timeEl = document.querySelector(".time-limit");
@@ -23,22 +48,29 @@ function extractFromCodeforces() {
   };
 }
 
-function extractFromLeetcode() {
-  const titleEl = document.querySelector("[data-cy='question-title']");
-  const difficultyEl = document.querySelector("[diff]");
-  const statementEl = document.querySelector(".elfjS");
+function extractFromLeetcode(callback) {
+  waitForElement("[data-track-load='description_content']", () => {
+    const titleEl = document.querySelector(".text-title-large");
+    const difficultyEl = document.querySelector("[class*='difficulty']");
+    const statementEl = document.querySelector(
+      "[data-track-load='description_content']",
+    );
 
-  const title = titleEl ? titleEl.innerText.trim() : null;
-  const difficulty = difficultyEl ? difficultyEl.innerText.trim() : null;
-  const statement = statementEl ? statementEl.innerText.trim() : null;
+    const titleFromDOM = titleEl ? titleEl.innerText.trim() : null;
+    const titleFromPage = document.title.replace("- LeetCode", "").trim();
+    const title = titleFromDOM || titleFromPage || null;
 
-  return {
-    platform: "leetcode",
-    title,
-    difficulty,
-    statement,
-    url: window.location.href,
-  };
+    const difficulty = difficultyEl ? difficultyEl.innerText.trim() : null;
+    const statement = statementEl ? statementEl.innerText.trim() : null;
+
+    callback({
+      platform: "leetcode",
+      title,
+      difficulty,
+      statement,
+      url: window.location.href,
+    });
+  });
 }
 
 function extractFromGeeksforGeeks() {
@@ -59,16 +91,19 @@ function extractFromGeeksforGeeks() {
   };
 }
 
-function extractProblemData(platform) {
+function extractProblemData(platform, callback) {
   switch (platform) {
     case "codeforces":
-      return extractFromCodeforces();
+      callback(extractFromCodeforces());
+      break;
     case "leetcode":
-      return extractFromLeetcode();
+      extractFromLeetcode(callback);
+      break;
     case "geeksforgeeks":
-      return extractFromGeeksforGeeks();
+      callback(extractFromGeeksforGeeks());
+      break;
     default:
-      return null;
+      callback(null);
   }
 }
 
