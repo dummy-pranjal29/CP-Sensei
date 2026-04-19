@@ -108,6 +108,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       return;
     }
+    const requestedLevel = message.level ?? currentLevel;
     chrome.storage.local.get(SUBMISSIONS_STORAGE_KEY).then((result) => {
       const history = Array.isArray(result[SUBMISSIONS_STORAGE_KEY])
         ? result[SUBMISSIONS_STORAGE_KEY]
@@ -117,11 +118,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .slice(0, 5)
         .map((s) => s.profile);
 
-      return fetchHint(storedProblem, currentLevel, profiles);
+      return fetchHint(storedProblem, requestedLevel, profiles);
     }).then((hint) => {
-      const level = currentLevel;
-      if (currentLevel < 5) currentLevel++;
-      sendResponse({ success: true, hint, level });
+      sendResponse({ success: true, hint, level: requestedLevel });
     });
   } else if (message.type === "ANALYZE_CODE") {
     if (!storedProblem) {
