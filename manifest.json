@@ -21,6 +21,7 @@
       "matches": [
         "https://codeforces.com/problemset/problem/*",
         "https://codeforces.com/contest/*/problem/*",
+        "https://codeforces.com/problemset/submit*",
         "https://leetcode.com/problems/*",
         "https://practice.geeksforgeeks.org/problems/*",
         "https://www.geeksforgeeks.org/problems/*",
@@ -30,6 +31,7 @@
         "src/ui/panel.js",
         "src/content/platformDetector.js",
         "src/content/domObserver.js",
+        "src/content/codeExtractor.js",
         "src/content/content.js"
       ],
       "run_at": "document_idle"

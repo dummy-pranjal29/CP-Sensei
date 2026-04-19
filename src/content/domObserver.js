@@ -28,8 +28,9 @@ function extractFromCodeforces() {
   const timeEl = document.querySelector(".time-limit");
   const statementEl = document.querySelector(".problem-statement");
 
-  const title = titleEl ? titleEl.innerText.trim() : null;
-
+  const titleFromDOM = titleEl ? titleEl.innerText.trim() : null;
+  const problemCode = new URLSearchParams(window.location.search).get("problemCode");
+  const title = titleFromDOM || problemCode || null;
   let timeLimit = null;
   if (timeEl) {
     const labelEl = timeEl.querySelector(".property-title");

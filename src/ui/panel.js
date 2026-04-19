@@ -245,6 +245,7 @@ function attachToggleListeners() {
   const panel = _shadow.getElementById("cp-sensei-panel");
   const close = _shadow.getElementById("cp-sensei-close");
   const hintBtn = _shadow.getElementById("btn-hint");
+  const analyzeBtn = _shadow.getElementById("btn-analyze");
 
   toggle.addEventListener("click", () => {
     panel.classList.remove("hidden");
@@ -267,6 +268,23 @@ function attachToggleListeners() {
       hintBtn.disabled = false;
     });
   });
+  analyzeBtn.addEventListener("click", () => {
+    const code = window.__cpExtractCode(window.__cpDetectPlatform());
+    if (!code) {
+      displayAnalysis("No code found in editor. Write some code first.");
+      return;
+    }
+    analyzeBtn.textContent = "Analyzing...";
+    analyzeBtn.disabled = true;
+
+    chrome.runtime.sendMessage({ type: "ANALYZE_CODE", code }, (response) => {
+      if (response?.analysis) {
+        window.__cpSenseiDisplayAnalysis(response.analysis);
+      }
+      analyzeBtn.textContent = "Analyze Code";
+      analyzeBtn.disabled = false;
+    });
+  });
 }
 
 function displayHint(text, level) {
@@ -281,5 +299,18 @@ function displayHint(text, level) {
   `;
 }
 
+function displayAnalysis(text) {
+  if (!_shadow) return;
+  const body = _shadow.getElementById("cp-sensei-body");
+  if (!body) return;
+  body.innerHTML = `
+    <div class="hint-content">
+      <p class="hint-level">Code Analysis</p>
+      <p class="hint-text">${text.replace(/\n/g, "<br>")}</p>
+    </div>
+  `;
+}
+
 window.__cpSenseiInit = initPanel;
 window.__cpSenseiDisplayHint = displayHint;
+window.__cpSenseiDisplayAnalysis = displayAnalysis;

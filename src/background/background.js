@@ -54,6 +54,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         level,
       });
     });
+  } else if (message.type === "ANALYZE_CODE") {
+    if (!storedProblem) {
+      sendResponse({
+        success: false,
+        error: "No problem loaded",
+      });
+      return;
+    }
+
+    fetch(`${BACKEND_URL}/api/analyze`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        problemData: storedProblem,
+        code: message.code,
+      }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        sendResponse({ success: true, analysis: data.analysis });
+      })
+      .catch((err) => {
+        sendResponse({ success: false, error: err.message });
+      });
+
+    return true;
   } else {
     sendResponse({
       success: false,
