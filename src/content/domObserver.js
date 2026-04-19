@@ -30,8 +30,12 @@ function extractFromCodeforces() {
 
   const titleFromDOM = titleEl ? titleEl.innerText.trim() : null;
   const problemCode = new URLSearchParams(window.location.search).get("problemCode");
-  const submitPageProblem = document.querySelector("table.problem-overview td:last-child a");
-  const titleFromSubmit = submitPageProblem ? submitPageProblem.innerText.trim() : null;
+  const submitPageProblem = Array.from(document.querySelectorAll("td.field-name")).find(
+    (td) => td.innerText.trim() === "Problem:"
+  )?.nextElementSibling;
+  const titleFromSubmit = submitPageProblem
+    ? submitPageProblem.innerText.replace(/\s+/g, " ").trim()
+    : null;
   const title = titleFromDOM || titleFromSubmit || problemCode || null;
   let timeLimit = null;
   if (timeEl) {

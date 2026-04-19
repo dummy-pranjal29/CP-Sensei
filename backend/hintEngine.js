@@ -17,21 +17,53 @@ const HINT_PROMPTS = {
   5: "Give the full solution with a clear explanation.",
 };
 
-function buildPrompt(problemData, level) {
+function buildProfileSection(profiles) {
+  if (!profiles || profiles.length === 0) return "";
+
+  const langs = [...new Set(profiles.map((p) => p.lang).filter(Boolean))];
+  const style = profiles[0]?.style ?? "standard";
+  const experienceLevel = profiles[0]?.level ?? "intermediate";
+
+  const allPatterns = profiles.flatMap((p) => p.patterns ?? []);
+  const freq = allPatterns.reduce((acc, p) => {
+    acc[p] = (acc[p] || 0) + 1;
+    return acc;
+  }, {});
+  const topPatterns = Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([p]) => p);
+
+  const complexities = profiles.map((p) => p.complexity).filter(Boolean);
+  const typicalComplexity = complexities[0] ?? null;
+
+  const lines = [
+    `Language: ${langs.join(", ")}`,
+    `Style: ${style}`,
+    `Experience: ${experienceLevel}`,
+    topPatterns.length ? `Frequent patterns: ${topPatterns.join(", ")}` : null,
+    typicalComplexity ? `Typical complexity: ${typicalComplexity}` : null,
+  ].filter(Boolean);
+
+  return `\nUser profile (from ${profiles.length} past submission(s)):\n${lines.map((l) => `- ${l}`).join("\n")}\nTailor the hint to match this user's level and style.\n`;
+}
+
+function buildPrompt(problemData, level, profiles = []) {
   const statementPreview =
     problemData.statement?.slice(0, 800) ?? "Not available";
+  const profileSection = buildProfileSection(profiles);
   return `You are CP Sensei, an expert competitive programming mentor.
 Be concise and pedagogical. Never give more than what is asked.
-
+${profileSection}
 Problem: ${problemData.title}
-Platform: ${problemData.platform}    
+Platform: ${problemData.platform}
 Statement: ${statementPreview}
 
 Hint Level ${level}/5 instruction: ${HINT_PROMPTS[level]}`;
 }
 
-async function getHint(problemData, level = 1) {
-  const prompt = buildPrompt(problemData, level);
+async function getHint(problemData, level = 1, profiles = []) {
+  const prompt = buildPrompt(problemData, level, profiles);
   try {
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",

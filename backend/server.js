@@ -15,13 +15,13 @@ app.use(cors());
 app.use(express.json());
 
 app.post("/api/hint", async (req, res) => {
-  const { problemData, level } = req.body;
+  const { problemData, level, profiles } = req.body;
 
   try {
     if (!problemData) {
       return res.status(400).json({ error: "problemData is required" });
     }
-    const hint = await getHint(problemData, level);
+    const hint = await getHint(problemData, level, profiles);
     return res.json({ hint });
   } catch (err) {
     console.error("[CP Sensei] /api/hint error:", err.message);

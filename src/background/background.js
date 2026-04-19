@@ -26,14 +26,48 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("CP Sensei installed successfully");
 });
 
-async function fetchHint(problemData, level) {
+function extractProfile(code, analysis) {
+  const lang =
+    code.includes("#include") || /vector<|class Solution\s*\{|public:|namespace std/.test(code) ? "cpp"
+    : code.includes("import java") || /public\s+class|System\.out/.test(code) ? "java"
+    : /def |import |print\(/.test(code) ? "python"
+    : /function |const |let |var /.test(code) ? "js"
+    : "unknown";
+
+  const style = code.includes("bits/stdc++") ? "competitive"
+    : code.includes("public class") ? "academic"
+    : "standard";
+
+  const usesSTL = /vector|map|set|unordered|priority_queue|stack|queue/.test(code);
+
+  const patterns = [];
+  if (/for[^;]+for/.test(code))               patterns.push("nested-loops");
+  if (/while\s*\(/.test(code))                patterns.push("while-loop");
+  if (/void\s+\w+\(|int\s+\w+\(/.test(code) && /return\s+\w+\(/.test(code)) patterns.push("recursion");
+  if (/sort\(|\.sort\(/.test(code))           patterns.push("sorting");
+  if (/unordered_map|HashMap|dict\[/.test(code)) patterns.push("hashing");
+  if (/left|right|mid/.test(code))            patterns.push("binary-search");
+  if (/dp\[|memo\[/.test(code))               patterns.push("dp");
+
+  const complexityMatch = analysis.match(/O\([^)]+\)/);
+  const complexity = complexityMatch ? complexityMatch[0] : null;
+
+  const level =
+    patterns.includes("dp") || patterns.includes("binary-search") ? "advanced"
+    : patterns.length >= 2 || usesSTL ? "intermediate"
+    : "beginner";
+
+  return { lang, style, usesSTL, patterns, complexity, level };
+}
+
+async function fetchHint(problemData, level, profiles = []) {
   try {
     const response = await fetch(`${BACKEND_URL}/api/hint`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ problemData, level }),
+      body: JSON.stringify({ problemData, level, profiles }),
     });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -74,14 +108,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       return;
     }
-    fetchHint(storedProblem, currentLevel).then((hint) => {
+    chrome.storage.local.get(SUBMISSIONS_STORAGE_KEY).then((result) => {
+      const history = Array.isArray(result[SUBMISSIONS_STORAGE_KEY])
+        ? result[SUBMISSIONS_STORAGE_KEY]
+        : [];
+      const profiles = history
+        .filter((s) => s.profile)
+        .slice(0, 5)
+        .map((s) => s.profile);
+
+      return fetchHint(storedProblem, currentLevel, profiles);
+    }).then((hint) => {
       const level = currentLevel;
       if (currentLevel < 5) currentLevel++;
-      sendResponse({
-        success: true,
-        hint,
-        level,
-      });
+      sendResponse({ success: true, hint, level });
     });
   } else if (message.type === "ANALYZE_CODE") {
     if (!storedProblem) {
@@ -107,12 +147,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return r.json();
       })
       .then((data) => {
+        const profile = extractProfile(message.code, data.analysis);
         saveSubmission({
           title: storedProblem.title,
           platform: storedProblem.platform,
           url: storedProblem.url,
           code: message.code,
           savedAt: new Date().toISOString(),
+          profile,
         });
         sendResponse({ success: true, analysis: data.analysis });
       })
