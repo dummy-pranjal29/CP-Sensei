@@ -30,7 +30,9 @@ function extractFromCodeforces() {
 
   const titleFromDOM = titleEl ? titleEl.innerText.trim() : null;
   const problemCode = new URLSearchParams(window.location.search).get("problemCode");
-  const title = titleFromDOM || problemCode || null;
+  const submitPageProblem = document.querySelector("table.problem-overview td:last-child a");
+  const titleFromSubmit = submitPageProblem ? submitPageProblem.innerText.trim() : null;
+  const title = titleFromDOM || titleFromSubmit || problemCode || null;
   let timeLimit = null;
   if (timeEl) {
     const labelEl = timeEl.querySelector(".property-title");

@@ -1,9 +1,26 @@
 console.log("CP Sensei background service worker started");
 
 const BACKEND_URL = "http://localhost:3000";
+const SUBMISSIONS_STORAGE_KEY = "cpSenseiSubmissions";
 
 let storedProblem = null;
 let currentLevel = 1;
+
+function buildEntry(problemData) {
+  const timestamp = new Date().toISOString();
+
+  return {
+    id: `${problemData.platform || "unknown"}:${problemData.url || problemData.title || timestamp}`,
+    platform: problemData.platform || null,
+    title: problemData.title || null,
+    difficulty: problemData.difficulty || null,
+    timeLimit: problemData.timeLimit || null,
+    statement: problemData.statement || null,
+    url: problemData.url || null,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log("CP Sensei installed successfully");
@@ -31,12 +48,24 @@ async function fetchHint(problemData, level) {
   }
 }
 
+const MAX_ENTRIES = 20;
+
+async function saveSubmission(entry) {
+  const result = await chrome.storage.local.get(SUBMISSIONS_STORAGE_KEY);
+  const existing = Array.isArray(result[SUBMISSIONS_STORAGE_KEY])
+    ? result[SUBMISSIONS_STORAGE_KEY]
+    : [];
+  const updated = [entry, ...existing].slice(0, MAX_ENTRIES);
+  await chrome.storage.local.set({ [SUBMISSIONS_STORAGE_KEY]: updated });
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "PROBLEM_DETECTED") {
-    console.log("[CP Sensei BG] Problem received:", message.payload);
-    storedProblem = message.payload;
+    const entry = buildEntry(message.payload);
+    console.log("[CP Sensei BG] Problem received:", entry);
+    storedProblem = entry;
     currentLevel = 1;
-    sendResponse({ success: true });
+    sendResponse({ success: true, entry });
   } else if (message.type === "GET_HINT") {
     if (!storedProblem) {
       sendResponse({
@@ -78,7 +107,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return r.json();
       })
       .then((data) => {
+        saveSubmission({
+          title: storedProblem.title,
+          platform: storedProblem.platform,
+          url: storedProblem.url,
+          code: message.code,
+          savedAt: new Date().toISOString(),
+        });
         sendResponse({ success: true, analysis: data.analysis });
+      })
+      .catch((err) => {
+        sendResponse({ success: false, error: err.message });
+      });
+
+    return true;
+  } else if (message.type === "SAVE_SUBMISSION") {
+    saveSubmission(message.entry)
+      .then((submission) => {
+        sendResponse({ success: true, submission });
       })
       .catch((err) => {
         sendResponse({ success: false, error: err.message });

@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Real-time AI mentor for competitive programming",
 
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "storage"],
 
   "host_permissions": [
     "https://codeforces.com/*",
@@ -32,6 +32,7 @@
         "src/content/platformDetector.js",
         "src/content/domObserver.js",
         "src/content/codeExtractor.js",
+        "src/utils/storage.js",
         "src/content/content.js"
       ],
       "run_at": "document_idle"
