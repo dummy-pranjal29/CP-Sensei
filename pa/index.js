@@ -1,7 +1,9 @@
 import "dotenv/config";
-import { getUpcomingContests } from "./lcApi.js";
+import { getUpcomingContests as getLCContests } from "./lcApi.js";
+import { getUpcomingContests as getCFContests } from "./cfApi.js";
 import { sendAlert } from "./alerter.js";
 import { solveContest } from "./solver.js";
+import { solveCFContest } from "./cfSolver.js";
 
 const POLL_MS       = 10 * 60 * 1000;
 const ALERT_BEFORE  = 35 * 60;
@@ -12,7 +14,13 @@ const solved  = new Set();
 async function tick() {
   let contests;
   try {
-    contests = await getUpcomingContests();
+    const [lc, cf] = await Promise.allSettled([getLCContests(), getCFContests()]);
+    contests = [
+      ...(lc.status === "fulfilled" ? lc.value : []),
+      ...(cf.status === "fulfilled" ? cf.value : []),
+    ];
+    if (lc.status === "rejected") console.error("[PA] LC fetch failed:", lc.reason.message);
+    if (cf.status === "rejected") console.error("[PA] CF fetch failed:", cf.reason.message);
   } catch (err) {
     console.error("[PA] Failed to fetch contests:", err.message);
     return;
@@ -31,13 +39,17 @@ async function tick() {
 
     if (isLive && !solved.has(c.titleSlug)) {
       solved.add(c.titleSlug);
-      solveContest(c).catch((err) => console.error("[PA] Solver failed:", err.message));
+      if (c.platform === "leetcode") {
+        solveContest(c).catch((err) => console.error("[PA] LC solver failed:", err.message));
+      } else if (c.platform === "codeforces") {
+        solveCFContest(c).catch((err) => console.error("[PA] CF solver failed:", err.message));
+      }
     }
   }
 }
 
 console.log("[PA] CP Sensei Personal Assistant started");
-console.log("[PA] Polling every 10 minutes for upcoming LeetCode contests\n");
+console.log("[PA] Polling every 10 minutes for upcoming LeetCode and Codeforces contests\n");
 
 tick();
 setInterval(tick, POLL_MS);

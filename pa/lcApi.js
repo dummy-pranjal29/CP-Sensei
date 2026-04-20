@@ -35,7 +35,9 @@ export async function getUpcomingContests() {
     }
   }`);
   const now = Date.now() / 1000;
-  return (data?.allContests ?? []).filter((c) => c.startTime > now - c.duration);
+  return (data?.allContests ?? [])
+    .filter((c) => c.startTime > now)
+    .map((c) => ({ ...c, platform: "leetcode", url: `https://leetcode.com/contest/${c.titleSlug}/` }));
 }
 
 export async function getContestProblems(contestSlug) {

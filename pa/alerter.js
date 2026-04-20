@@ -19,11 +19,10 @@ export async function sendAlert(contest) {
     subject: `Contest in 30 min: ${contest.title}`,
     text: [
       `Contest: ${contest.title}`,
+      `Platform: ${contest.platform === "codeforces" ? "Codeforces" : "LeetCode"}`,
       `Starts: ${startDate.toLocaleString()}`,
       `Duration: ${durationMin} minutes`,
-      ``,
-      `CP Sensei PA will auto-solve the first 3 problems for you.`,
-      `Link: https://leetcode.com/contest/${contest.titleSlug}/`,
+      `Link: ${contest.url ?? `https://leetcode.com/contest/${contest.titleSlug}/`}`,
     ].join("\n"),
   });
 
