@@ -1,6 +1,6 @@
 const PANEL_ID = "cp-sensei-host";
 let _shadow = null;
-let _currentLevel = 1;
+let _currentLevel = 0;
 
 const $ = (id) => _shadow.querySelector("#" + id);
 
@@ -146,7 +146,7 @@ function createHTML() {
         </div>
       </div>
       <div id="lvbar">
-        <span class="lvlabel">NEXT</span>
+        <span class="lvlabel">LEVEL</span>
         <div id="segs">
           ${[1,2,3,4,5].map(i=>`<div class="seg" data-i="${i}"></div>`).join("")}
         </div>
@@ -382,6 +382,51 @@ function loadCSS(root) {
   .abtn{background:rgba(14,165,233,0.09);color:#38bdf8;border:1px solid rgba(14,165,233,0.3);box-shadow:0 2px 10px rgba(14,165,233,0.08)}
   .abtn:hover:not(:disabled){background:rgba(14,165,233,0.17);border-color:rgba(14,165,233,0.5);box-shadow:0 4px 18px rgba(14,165,233,0.22);transform:translateY(-1px)}
   .bico{font-size:13px;opacity:.9}
+
+  .v-wrap{padding:4px 0}
+  .v-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    border-radius:6px;padding:5px 12px;font-family:monospace;margin-bottom:10px;
+  }
+  .v-badge.ac{color:#34d399;background:rgba(16,185,129,0.12);border:1px solid rgba(52,211,153,0.35)}
+  .v-badge.wa{color:#f87171;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.35)}
+  .v-badge.tle{color:#fb923c;background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.35)}
+  .v-badge.mle{color:#fb923c;background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.35)}
+  .v-badge.re{color:#f87171;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.35)}
+  .v-badge.ce{color:#94a3b8;background:rgba(148,163,184,0.1);border:1px solid rgba(148,163,184,0.25)}
+  .v-nudge{
+    font-family:'Courier New',Courier,monospace;font-size:11.5px;line-height:1.85;
+    color:#8080a8;padding:8px 12px;margin-bottom:10px;
+    border-left:2px solid rgba(255,255,255,0.07);white-space:pre-wrap;word-break:break-word;
+  }
+  .v-hint-btn{
+    display:block;width:100%;margin-top:6px;padding:7px 0;
+    background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);
+    border-radius:7px;color:#a78bfa;font-family:monospace;
+    font-size:10.5px;letter-spacing:.07em;cursor:pointer;text-align:center;
+    transition:background .18s,border-color .18s;
+  }
+  .v-hint-btn:hover{background:rgba(124,58,237,0.22);border-color:rgba(124,58,237,0.55)}
+
+  .apikey-wrap{padding:4px 0}
+  .apikey-label{font-size:10px;color:#6366f1;font-family:monospace;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:block}
+  .apikey-sub{font-size:10px;color:#44445a;font-family:monospace;margin-bottom:12px;line-height:1.6}
+  .apikey-input{
+    width:100%;padding:8px 10px;border-radius:7px;
+    background:#0d0d24;border:1px solid rgba(124,58,237,0.35);
+    color:#cac8ff;font-family:'Courier New',monospace;font-size:11px;
+    outline:none;margin-bottom:10px;box-sizing:border-box;
+  }
+  .apikey-input:focus{border-color:rgba(124,58,237,0.7)}
+  .apikey-save{
+    width:100%;padding:8px 0;border-radius:7px;
+    background:linear-gradient(135deg,#5b21b6,#4338ca);
+    color:#ede9fe;font-family:monospace;font-size:11px;font-weight:700;
+    border:none;cursor:pointer;letter-spacing:.06em;
+    transition:opacity .18s;
+  }
+  .apikey-save:hover{opacity:.85}
   `;
   root.appendChild(s);
 }
@@ -427,7 +472,7 @@ function buildHintDOM(text, container) {
 }
 
 function applyLevel(lvl) {
-  _currentLevel = Math.min(5, Math.max(1, lvl));
+  _currentLevel = Math.min(5, Math.max(0, lvl));
   _shadow.querySelectorAll(".seg").forEach((s, i) => s.classList.toggle("on", i < _currentLevel));
   const lv  = $("lvnum");
   const btn = $("plus");
@@ -511,6 +556,79 @@ function displayAnalysis(text) {
   </div>`;
 }
 
+function displayVerdict({ verdict, nudge }) {
+  if (!_shadow) return;
+  const panel = $("panel");
+  if (panel) {
+    panel.classList.remove("hidden");
+    panel.classList.add("visible");
+  }
+  const body = $("body");
+  if (!body) return;
+
+  const cls = { AC: "ac", WA: "wa", TLE: "tle", MLE: "mle", RE: "re", CE: "ce" }[verdict] || "ce";
+  const icon = { AC: "✓", WA: "✕", TLE: "⏱", MLE: "⚠", RE: "⚡", CE: "⛔" }[verdict] || "?";
+  const label = {
+    AC: "Accepted", WA: "Wrong Answer", TLE: "Time Limit Exceeded",
+    MLE: "Memory Limit Exceeded", RE: "Runtime Error", CE: "Compilation Error"
+  }[verdict] || verdict;
+
+  const wrap = document.createElement("div");
+  wrap.className = "v-wrap";
+  wrap.innerHTML = `<div class="obadge hb" style="margin-bottom:10px">⚑ verdict</div><div class="osep"></div><span class="v-badge ${cls}">${icon} ${label}</span>`;
+
+  if (nudge) {
+    const nd = document.createElement("div");
+    nd.className = "v-nudge";
+    nd.textContent = nudge;
+    wrap.appendChild(nd);
+
+    if (verdict === "WA" || verdict === "TLE") {
+      const btn = document.createElement("button");
+      btn.className = "v-hint-btn";
+      btn.textContent = "≡ Get targeted hint";
+      btn.addEventListener("click", () => $("hbtn")?.click());
+      wrap.appendChild(btn);
+    }
+  }
+
+  body.innerHTML = "";
+  body.appendChild(wrap);
+}
+
+function displayApiKeyPrompt(onSaved) {
+  if (!_shadow) return;
+  const body = $("body");
+  if (!body) return;
+
+  const wrap = document.createElement("div");
+  wrap.className = "apikey-wrap";
+  wrap.innerHTML = `
+    <span class="obadge hb" style="margin-bottom:10px">⚙ setup</span>
+    <div class="osep"></div>
+    <span class="apikey-label">Anthropic API Key required</span>
+    <div class="apikey-sub">Get your key at console.anthropic.com → API Keys.<br>Stored locally, never sent anywhere except Anthropic.</div>
+    <input class="apikey-input" type="password" placeholder="sk-ant-..." spellcheck="false"/>
+    <button class="apikey-save">Save & Continue</button>`;
+
+  body.innerHTML = "";
+  body.appendChild(wrap);
+
+  const input = wrap.querySelector(".apikey-input");
+  const btn   = wrap.querySelector(".apikey-save");
+
+  btn.addEventListener("click", () => {
+    const key = input.value.trim();
+    if (!key.startsWith("sk-ant-")) {
+      input.style.borderColor = "#f87171";
+      return;
+    }
+    chrome.runtime.sendMessage({ type: "SET_API_KEY", apiKey: key }, () => {
+      onSaved?.();
+    });
+  });
+}
+
 function displayError(msg) {
   if (!_shadow) return;
   const body = $("body");
@@ -550,12 +668,18 @@ function attachListeners() {
   plus.addEventListener("click", () => applyLevel(_currentLevel + 1));
 
   hbtn.addEventListener("click", () => {
+    const lv = Math.min(5, _currentLevel + 1);
+    applyLevel(lv);
     lock("hint");
-    const lv = _currentLevel;
     chrome.runtime.sendMessage({ type: "GET_HINT", level: lv }, (res) => {
       if (res?.hint) {
         displayHint(res.hint);
-        applyLevel(lv + 1);
+      } else if (res?.error === "NO_API_KEY") {
+        applyLevel(lv - 1);
+        displayApiKeyPrompt(() => $("hbtn")?.click());
+      } else if (res?.error) {
+        displayError(res.error);
+        applyLevel(lv - 1);
       }
       unlock();
     });
@@ -567,6 +691,8 @@ function attachListeners() {
     lock("analyze");
     chrome.runtime.sendMessage({ type: "ANALYZE_CODE", code }, (res) => {
       if (res?.analysis) displayAnalysis(res.analysis);
+      else if (res?.error === "NO_API_KEY") displayApiKeyPrompt();
+      else if (res?.error) displayError(res.error);
       unlock();
     });
   });
@@ -584,9 +710,10 @@ function attachListeners() {
   });
   document.addEventListener("mouseup", () => { drag=false; });
 
-  applyLevel(1);
+  applyLevel(0);
 }
 
 window.__cpSenseiInit            = initPanel;
-window.__cpSenseiDisplayHint = displayHint;
+window.__cpSenseiDisplayHint     = displayHint;
 window.__cpSenseiDisplayAnalysis = displayAnalysis;
+window.__cpSenseiShowVerdict     = displayVerdict;
